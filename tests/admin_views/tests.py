@@ -44,16 +44,17 @@ from .models import (
     CustomArticle, CyclicOne, CyclicTwo, DooHickey, Employee, EmptyModel,
     Fabric, FancyDoodad, FieldOverridePost, FilteredManager, FooAccount,
     FoodDelivery, FunkyTag, Gallery, Grommet, Inquisition, Language, Link,
-    MainPrepopulated, Media, ModelWithStringPrimaryKey, OtherStory, Paper,
-    Parent, ParentWithDependentChildren, ParentWithUUIDPK, Person, Persona,
-    Picture, Pizza, Plot, PlotDetails, PluggableSearchPerson, Podcast, Post,
-    PrePopulatedPost, Promo, Question, ReadablePizza, ReadOnlyPizza,
-    Recommendation, Recommender, RelatedPrepopulated, RelatedWithUUIDPKModel,
-    Report, Restaurant, RowLevelChangePermissionModel, SecretHideout, Section,
-    ShortMessage, Simple, Song, State, Story, SuperSecretHideout, SuperVillain,
-    Telegram, TitleTranslation, Topping, UnchangeableObject, UndeletableObject,
-    UnorderedObject, UserProxy, Villain, Vodcast, Whatsit, Widget, Worker,
-    WorkHour,
+    MainPrepopulated, Media, ModelWithAdmin, ModelWithoutAdmin,
+    ModelWithStringPrimaryKey, OtherStory, Paper, Parent,
+    ParentWithDependentChildren, ParentWithUUIDPK, Person, Persona, Picture,
+    Pizza, Plot, PlotDetails, PluggableSearchPerson, Podcast, Post,
+    PrePopulatedPost, Promo, Question, ReadablePizza, ReadonlyModel,
+    ReadOnlyPizza, Recommendation, Recommender, RelatedPrepopulated,
+    RelatedWithUUIDPKModel, Report, Restaurant, RowLevelChangePermissionModel,
+    SecretHideout, Section, ShortMessage, Simple, Song, State, Story,
+    SuperSecretHideout, SuperVillain, Telegram, TitleTranslation, Topping,
+    UnchangeableObject, UndeletableObject, UnorderedObject, UserProxy, Villain,
+    Vodcast, Whatsit, Widget, Worker, WorkHour,
 )
 
 ERROR_MESSAGE = "Please enter the correct username and password \
@@ -4899,6 +4900,25 @@ class ReadonlyTest(AdminFieldExtractionMixin, TestCase):
         response = self.client.get(reverse('admin:admin_views_choice_change', args=(choice.pk,)))
         self.assertContains(response, '<div class="readonly">No opinion</div>', html=True)
 
+    def test_readonly_foreignkey(self):
+        """
+        Test that ForeignKey renders as links for readonly fields if the target model
+        has an admin
+        """
+        model_with_admin = ModelWithAdmin.objects.create(name='model with admin')
+        model_without_admin = ModelWithoutAdmin.objects.create(name='model without admin')
+        model = ReadonlyModel.objects.create(
+            name='model1',
+            model_with_admin=model_with_admin,
+            model_without_admin=model_without_admin
+        )
+        response = self.client.get(reverse('admin:admin_views_readonlymodel_change', args=(model.pk,)))
+        link_to_book = reverse('admin:admin_views_modelwithadmin_change', args=(model_with_admin.pk,))
+        self.assertContains(response, '<div class="readonly"><a href="%s">model with admin</a></div>' % link_to_book,
+                            html=True)
+        # model without admin should be rendered as plaintext
+        self.assertContains(response, '<div class="readonly">model without admin</div>', html=True)
+
     def test_readonly_manytomany_backwards_ref(self):
         """
         Regression test for #16433 - backwards references for related objects
@@ -4916,7 +4936,9 @@ class ReadonlyTest(AdminFieldExtractionMixin, TestCase):
         pizza.toppings.add(topping)
         response = self.client.get(reverse('admin:admin_views_pizza_change', args=(pizza.pk,)))
         self.assertContains(response, '<label>Toppings:</label>', html=True)
-        self.assertContains(response, '<div class="readonly">Salami</div>', html=True)
+        link_to_salami = reverse('admin:admin_views_topping_change', args=(topping.pk,))
+        self.assertContains(response, '<div class="readonly"><a href="%s">Salami</a></div>' % link_to_salami,
+                            html=True)
 
     def test_readonly_onetoone_backwards_ref(self):
         """
@@ -4928,7 +4950,8 @@ class ReadonlyTest(AdminFieldExtractionMixin, TestCase):
 
         response = self.client.get(reverse('admin:admin_views_plotproxy_change', args=(pl.pk,)))
         field = self.get_admin_readonly_field(response, 'plotdetails')
-        self.assertEqual(field.contents(), 'Brand New Plot')
+        link_to_pd = reverse('admin:admin_views_plotdetails_change', args=(pd.pk,))
+        self.assertEqual(field.contents(), '<a href="%s">Brand New Plot</a>' % link_to_pd)
 
         # The reverse relation also works if the OneToOneField is null.
         pd.plot = None

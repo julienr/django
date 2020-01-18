@@ -32,13 +32,13 @@ from .models import (
     FilteredManager, FooAccount, FoodDelivery, FunkyTag, Gadget, Gallery,
     GenRelReference, Grommet, ImplicitlyGeneratedPK, Ingredient,
     InlineReference, InlineReferer, Inquisition, Language, Link,
-    MainPrepopulated, ModelWithStringPrimaryKey, NotReferenced, OldSubscriber,
-    OtherStory, Paper, Parent, ParentWithDependentChildren, ParentWithUUIDPK,
-    Person, Persona, Picture, Pizza, Plot, PlotDetails, PlotProxy,
-    PluggableSearchPerson, Podcast, Post, PrePopulatedPost,
+    MainPrepopulated, ModelWithAdmin, ModelWithStringPrimaryKey, NotReferenced,
+    OldSubscriber, OtherStory, Paper, Parent, ParentWithDependentChildren,
+    ParentWithUUIDPK, Person, Persona, Picture, Pizza, Plot, PlotDetails,
+    PlotProxy, PluggableSearchPerson, Podcast, Post, PrePopulatedPost,
     PrePopulatedPostLargeSlug, PrePopulatedSubPost, Promo, Question,
-    ReadablePizza, ReadOnlyPizza, Recipe, Recommendation, Recommender,
-    ReferencedByGenRel, ReferencedByInline, ReferencedByParent,
+    ReadablePizza, ReadonlyModel, ReadOnlyPizza, Recipe, Recommendation,
+    Recommender, ReferencedByGenRel, ReferencedByInline, ReferencedByParent,
     RelatedPrepopulated, RelatedWithUUIDPKModel, Report, Reservation,
     Restaurant, RowLevelChangePermissionModel, Section, ShortMessage, Simple,
     Sketch, Song, State, Story, StumpJoke, Subscriber, SuperVillain, Telegram,
@@ -537,6 +537,10 @@ class ToppingAdmin(admin.ModelAdmin):
 
 class PizzaAdmin(admin.ModelAdmin):
     readonly_fields = ('toppings',)
+
+
+class ReadonlyModelAdmin(admin.ModelAdmin):
+    readonly_fields = ('model_with_admin', 'model_without_admin', )
 
 
 class StudentAdmin(admin.ModelAdmin):
@@ -1106,6 +1110,8 @@ site.register(NotReferenced)
 site.register(ExplicitlyProvidedPK, GetFormsetsArgumentCheckingAdmin)
 site.register(ImplicitlyGeneratedPK, GetFormsetsArgumentCheckingAdmin)
 site.register(UserProxy)
+site.register(ModelWithAdmin)
+site.register(ReadonlyModel, ReadonlyModelAdmin)
 
 # Register core models we need in our tests
 site.register(User, UserAdmin)

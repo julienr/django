@@ -7,9 +7,12 @@ from django.contrib.admin.utils import (
     lookup_field,
 )
 from django.core.exceptions import ObjectDoesNotExist
-from django.db.models.fields.related import ManyToManyRel
+from django.db.models.fields.related import (
+    ForeignObjectRel, ManyToManyRel, OneToOneField,
+)
 from django.forms.utils import flatatt
 from django.template.defaultfilters import capfirst, linebreaksbr
+from django.urls import NoReverseMatch, reverse
 from django.utils.html import conditional_escape, format_html
 from django.utils.safestring import mark_safe
 from django.utils.translation import gettext, gettext_lazy as _
@@ -189,6 +192,21 @@ class AdminReadonlyField:
         label = self.field['label']
         return format_html('<label{}>{}{}</label>', flatatt(attrs), capfirst(label), self.form.label_suffix)
 
+    def _get_link_to_related_model(self, remote_field, remote_obj):
+        try:
+            url = reverse(
+                'admin:%s_%s_change' % (
+                    remote_field.model._meta.app_label,
+                    remote_field.model._meta.object_name.lower()
+                ),
+                args=(remote_obj.id,)
+            )
+            link = format_html('<a href="{}">{}</a>', url, remote_obj)
+            return link
+        except NoReverseMatch:
+            # This handles the case where the remote model has no admin
+            return str(remote_obj)
+
     def contents(self):
         from django.contrib.admin.templatetags.admin_list import _boolean_icon
         field, obj, model_admin = self.field['field'], self.form.instance, self.model_admin
@@ -213,7 +231,13 @@ class AdminReadonlyField:
                         result_repr = linebreaksbr(value)
             else:
                 if isinstance(f.remote_field, ManyToManyRel) and value is not None:
-                    result_repr = ", ".join(map(str, value.all()))
+                    result_repr = []
+                    for remote_obj in value.all():
+                        result_repr.append(self._get_link_to_related_model(f.remote_field, remote_obj))
+                    result_repr = mark_safe(", ".join(result_repr))
+                elif (isinstance(f.remote_field, ForeignObjectRel) or isinstance(f.remote_field, OneToOneField)) \
+                        and value is not None:
+                    result_repr = self._get_link_to_related_model(f.remote_field, value)
                 else:
                     result_repr = display_for_field(value, f, self.empty_value_display)
                 result_repr = linebreaksbr(result_repr)

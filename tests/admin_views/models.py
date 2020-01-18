@@ -999,3 +999,23 @@ class UserProxy(User):
     """Proxy a model with a different app_label."""
     class Meta:
         proxy = True
+
+
+class ModelWithAdmin(models.Model):
+    name = models.TextField()
+
+    def __str__(self):
+        return self.name
+
+
+class ModelWithoutAdmin(models.Model):
+    name = models.TextField()
+
+    def __str__(self):
+        return self.name
+
+
+class ReadonlyModel(models.Model):
+    name = models.TextField()
+    model_with_admin = models.ForeignKey(ModelWithAdmin, models.CASCADE)
+    model_without_admin = models.ForeignKey(ModelWithoutAdmin, models.CASCADE)
